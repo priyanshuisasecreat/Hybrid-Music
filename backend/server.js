@@ -11,7 +11,7 @@ const app = express();
 const PORT = 3000;
 
 // --- CONFIGURATION ---
-const YOUTUBE_API_KEY = 'AIzaSyDK7BA4ZuuQmIEr59XVaBAvWwZ0QDr1FVI';
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const youtube = google.youtube({ version: 'v3', auth: YOUTUBE_API_KEY });
 
 app.use(cors());
