@@ -24,9 +24,14 @@ app.get('/api/search', async (req, res) => {
   if (!query) return res.status(400).json({ error: 'Query is required' });
 
   try {
-    const response = await Youtube.list({
-      part: 'snippet', q: query, type: 'video', maxResults: 10, videoCategoryId: '10'
-    });
+    const response = await youtube.search.list({
+  part: 'snippet',
+  q: query,
+  type: 'video',
+  maxResults: 10,
+  videoCategoryId: '10'
+});
+
     const results = response.data.items.map(item => ({
       videoId: item.id.videoId, title: item.snippet.title, channel: item.snippet.channelTitle, thumbnail: item.snippet.thumbnails.default.url
     }));
