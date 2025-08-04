@@ -1,17 +1,16 @@
-// backend/server.js (THE ABSOLUTE FINAL VERSION)
+// backend/server.js (ABSOLUTE FINAL - SYNTAX CORRECTED)
 console.log("--- NAYA CODE v3 CHAL RAHA HAI ---");
 
 const express = require('express');
 const cors = require('cors');
 const { google } = require('googleapis');
-// --- YAHAN BADLAAV KIYA GAYA HAI ---
-const ytdl = require('@distube/ytdl-core'); // Hum nayi library ka istemaal kar rahe hain
+const ytdl = require('ytdl-core-new');
 
 const app = express();
 const PORT = 3000;
 
 // --- CONFIGURATION ---
-const YOUTUBE_API_KEY = 'AIzaSyDK7BA4ZuuQmIEr59XVaBAvWwZ0QDr1FVI';
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const youtube = google.youtube({ version: 'v3', auth: YOUTUBE_API_KEY });
 
 app.use(cors());
@@ -23,7 +22,6 @@ app.get('/api/search', async (req, res) => {
 
   try {
     const response = await youtube.search.list({  // ✅ correct
-
       part: 'snippet',
       q: query,
       type: 'video',
@@ -53,10 +51,21 @@ app.get('/api/audio', async (req, res) => {
   if (!videoId) return res.status(400).json({ error: 'Video ID is required' });
 
   try {
-    const info = await ytdl.getInfo(videoId);
+    const requestOptions = {
+      headers: {
+        cookie: process.env.YOUTUBE_COOKIES || '',
+      }
+    };
+
+    const info = await ytdl.getInfo(videoId, { requestOptions });
     const audioFormat = ytdl.chooseFormat(info.formats, { quality: 'highestaudio', filter: 'audioonly' });
-    if (!audioFormat) return res.status(404).json({ error: 'No audio-only stream found.' });
+    
+    if (!audioFormat) {
+      return res.status(404).json({ error: 'No audio-only stream found.' });
+    }
+    
     res.json({ audioUrl: audioFormat.url });
+
   } catch (error) {
     console.log("!!!!!!!!!!!!!! AUDIO FETCH ME ERROR HUA !!!!!!!!!!!!!!");
     console.error(error);
