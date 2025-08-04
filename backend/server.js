@@ -5,7 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const { google } = require('googleapis');
 // --- YAHAN BADLAAV KIYA GAYA HAI ---
-const ytdl = require('@distube/ytdl-core'); // Hum nayi library ka istemaal kar rahe hain
+const ytdl = require('ytdl-core-new');// Hum nayi library ka istemaal kar rahe hain
 
 const app = express();
 const PORT = 3000;
