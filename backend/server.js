@@ -52,18 +52,33 @@ app.get('/api/audio', async (req, res) => {
   const videoId = req.query.videoId;
   if (!videoId) return res.status(400).json({ error: 'Video ID is required' });
 
-  try {
-    const info = await ytdl.getInfo(videoId);
+try {
+    // Hum request ke saath cookies bhej rahe hain
+    const requestOptions = {
+      headers: {
+        cookie: process.env.YOUTUBE_COOKIES || '', // Render se cookies uthana
+      }
+    };
+
+    const info = await ytdl.getInfo(videoId, { requestOptions });
     const audioFormat = ytdl.chooseFormat(info.formats, { quality: 'highestaudio', filter: 'audioonly' });
-    if (!audioFormat) return res.status(404).json({ error: 'No audio-only stream found.' });
+    
+    if (!audioFormat) {
+      return res.status(404).json({ error: 'No audio-only stream found.' });
+    }
+    
     res.json({ audioUrl: audioFormat.url });
-  } catch (error) {
+
+} // ...
+} catch (error) {
+    // SAARA ERROR HANDLING IS BLOCK KE ANDAR HONA CHAHIYE
     console.log("!!!!!!!!!!!!!! AUDIO FETCH ME ERROR HUA !!!!!!!!!!!!!!");
     console.error(error);
     console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     res.status(500).json({ error: 'Failed to get audio stream' });
-  }
-});
+}
+// ...
+   
 
 app.listen(PORT, () => {
   console.log(`Audio Helper Backend is running at http://localhost:${PORT}`);
