@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Music Player</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Aapka poora CSS jaisa tha waisa hi hai, bas neeche kuch naya add kiya hai */
+        :root {
+            --bg-color: #e3d9c6;
+            --vinyl-bg: #d8cea8;
+            --vinyl-black: #1a1a1a;
+            --text-dark: #3d3522;
+            --text-light: #6b5f42;
+            --progress-bar: #c0b298;
+        }
+
+        body {
+            background-color: #2c2c2c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            box-sizing: border-box;
+        }
+
+        .mobile-frame {
+            max-width: 390px;
+            width: 100%;
+            max-height: 850px;
+            height: 100%;
+            background-color: var(--bg-color);
+            border-radius: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 25px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* --- Baaki ka CSS --- */
+        .search-container { position: relative; height: 50px; margin-bottom: 10px; width: 50px; align-self: flex-end; transition: width 0.4s ease-in-out; flex-shrink: 0; }
+        .search-input { height: 50px; width: 100%; border-radius: 25px; border: 1px solid #d1c7b6; padding: 0; font-size: 16px; outline: none; box-sizing: border-box; transition: padding-left 0.4s ease-in-out, padding-right 0.4s ease-in-out; background-color: #f5f0e8; color: var(--text-dark); box-shadow: inset 0 1px 3px rgba(0,0,0,0.06); }
+        .search-input::placeholder { color: transparent; transition: color 0.3s ease-in-out; }
+        .search-btn { position: absolute; top: 0; right: 0; height: 50px; width: 50px; border-radius: 50%; border: none; background-color: transparent; cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 10; }
+        .search-btn .icon { position: absolute; width: 20px; height: 20px; fill: var(--text-light); transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; }
+        .search-btn .icon-search { opacity: 1; transform: rotate(0deg); }
+        .search-btn .icon-close { opacity: 0; transform: rotate(-90deg); }
+        .search-container.active { width: 100%; }
+        .search-container.active .search-input { padding-left: 20px; padding-right: 60px; }
+        .search-container.active .search-input::placeholder { color: var(--text-light); }
+        .search-container.active .search-btn .icon-search { opacity: 0; transform: rotate(90deg); }
+        .search-container.active .search-btn .icon-close { opacity: 1; transform: rotate(0deg); }
+        
+        .main-content-area { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0; }
+        .user-handle { color: var(--text-light); font-size: 12px; text-align: center; margin-bottom: 30px; opacity: 0.7; flex-shrink: 0; }
+        .album-art-area { display: flex; justify-content: center; align-items: center; margin-bottom: 40px; flex-shrink: 1; position: relative; }
+        .vinyl-record { width: 300px; height: 300px; max-width: 100%; background-color: var(--vinyl-bg); border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; }
+        .vinyl-record::before { content: ''; display: block; padding-top: 100%; }
+        .vinyl-grooves { position: absolute; top: 5%; left: 5%; right: 5%; bottom: 5%; border: 15px solid #beae67a8; border-radius: 50%; box-sizing: border-box; display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.5); }
+        .album-cover { position: absolute; top: 13.33%; left: 13.33%; right: 13.33%; bottom: 13.33%; border-radius: 50%; background-image: url('https://placehold.co/300x300/9c7f64/FFFFFF?text=Album+Art'); background-size: cover; background-position: center; box-shadow: 0 5px 15px rgba(0,0,0,0.2); animation: none; }
+        .album-cover.spin { animation: spin 4s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .song-details { padding: 0 10px; position: relative; margin-top: 20px; flex-shrink: 0; }
+        .spotify-icon { position: absolute; top: 25px; right: 10px; width: 30px; height: 30px; background-color: #1a1a1a; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; }
+        .info-header { display: flex; align-items: center; margin-bottom: 20px; }
+        .like-btn { color: var(--text-dark); font-size: 24px; margin-right: 15px; cursor: pointer; }
+        .title-artist h2 { font-size: 22px; font-weight: 600; color: var(--text-dark); margin: 0; }
+        .title-artist p { font-size: 16px; color: var(--text-light); margin: 0; }
+        .options-btn { color: var(--text-dark); font-size: 24px; margin-left: auto; }
+        .progress-bar-container { position: relative; width: 100%; height: 4px; background-color: var(--progress-bar); border-radius: 2px; margin-bottom: 5px; cursor: pointer; }
+        .progress { position: absolute; left: 0; top: 0; height: 100%; background-color: var(--text-dark); border-radius: 2px; width: 0%; }
+        .progress-thumb { width: 12px; height: 12px; background-color: var(--text-dark); border-radius: 50%; position: absolute; top: 50%; left: 0%; transform: translate(-50%, -50%); cursor: pointer; }
+        .time-stamps { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dark); font-weight: 500; margin-bottom: 30px; }
+        .controls { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-top: auto; margin-bottom: 10px; flex-shrink: 0; }
+        .control-btn { color: var(--text-dark); font-size: 20px; opacity: 0.8; cursor: pointer; }
+        .play-pause-btn { width: 70px; height: 70px; border: 2px solid var(--text-dark); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 28px; cursor: pointer; }
+        #playlistModal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(44,44,44,0.7); z-index: 999; justify-content: center; align-items: center; }
+        #playlistModal .modal-content { background: linear-gradient(135deg, #f5f0e8 60%, #e3d9c6 100%); color: #222; border-radius: 32px; padding: 28px 18px 18px 18px; max-width: 340px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.18); position: relative; border: 2px solid #d1c7b6; }
+        #playlistModal .modal-content::-webkit-scrollbar { width: 8px; }
+        #playlistModal .modal-content::-webkit-scrollbar-thumb { background: #c0b298; border-radius: 8px; }
+        #playlistModal h3 { margin-top: 0; margin-bottom: 18px; text-align: center; font-size: 22px; font-weight: 600; color: #3d3522; }
+        #playlistModal .close-btn { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 26px; color: #3d3522; cursor: pointer; }
+        #playlistSongs { list-style: none; padding: 0; margin: 0; }
+        #playlistSongs li { display: flex; align-items: center; padding: 12px 5px; border-bottom: 1px solid #ece6db; cursor: pointer; transition: background 0.2s; }
+        #playlistSongs li:last-child { border-bottom: none; }
+        #playlistSongs li:hover { background: #f5e7d6; }
+        #playlistSongs li.active { background: #e3d9c6; font-weight: 600; }
+        #playlistSongs li .thumb { width: 38px; height: 38px; border-radius: 5px; margin-right: 14px; background-size: cover; background-position: center; border: 1px solid #d1c7b6; }
+        #playlistSongs li .song-info { flex: 1; }
+        #playlistSongs li .song-name { font-size: 15px; font-weight: 500; color: #3d3522; }
+        #playlistSongs li.active .song-name { color: #1db954; }
+        #playlistSongs li .song-artist { font-size: 13px; color: #6b5f42; margin-top: 2px; }
+
+        @media (max-width: 420px) { body { padding: 0; align-items: flex-start; } .mobile-frame { height: 100vh; max-height: 100%; border-radius: 0; box-shadow: none; padding: 15px; } }
+        @media (max-height: 750px) { .album-art-area { margin-bottom: 20px; } .vinyl-record { width: 250px; height: 250px; } .vinyl-grooves { border-width: 12px; } .song-details { margin-top: 15px; } .time-stamps { margin-bottom: 20px; } }
+        @media (max-height: 670px) { .user-handle { display: none; } .album-art-area { margin-bottom: 15px; } .vinyl-record { width: 220px; height: 220px; } .vinyl-grooves { border-width: 10px; } .title-artist h2 { font-size: 20px; } .title-artist p { font-size: 14px; } .info-header { margin-bottom: 15px; } .time-stamps { margin-bottom: 15px; } .play-pause-btn { width: 60px; height: 60px; font-size: 24px; } }
+
+        /* --- BADLAAV #2: Mode Switch Buttons ke Liye Naya CSS --- */
+        .mode-switch {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        .mode-btn {
+            background: none;
+            border: 1px solid var(--progress-bar);
+            color: var(--text-light);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .mode-btn:first-child {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .mode-btn:last-child {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-left: none;
+        }
+        .mode-btn.active-mode {
+            background-color: var(--text-dark);
+            color: var(--bg-color);
+            border-color: var(--text-dark);
+        }
+
+    </style>
+</head>
+<body>
+    
+    <div class="mobile-frame">
+        <div class="search-container" id="searchContainer">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search and press Enter...">
+            <button class="search-btn" id="searchBtn">
+                <svg class="icon icon-search" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg>
+                <svg class="icon icon-close" viewBox="0 0 320 512"><path d="M310.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L160 210.7 54.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L114.7 256 9.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 301.3 265.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L205.3 256 310.6 150.6z"/></svg>
+            </button>
+        </div>
+        
+        <div class="mode-switch">
+            <button class="mode-btn" id="localModeBtn">My Library</button>
+            <button class="mode-btn active-mode" id="youtubeModeBtn">Search YouTube</button>
+        </div>
+
+        <div class="main-content-area">
+            <p class="user-handle">Adarsh||Codes</p>
+            <div class="album-art-area">
+                <div class="vinyl-record">
+                    <div class="vinyl-grooves">
+                        <div class="album-cover"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="song-details">
+                <div class="spotify-icon"><i class="fab fa-spotify"></i></div>
+                <div class="info-header">
+                    <i class="far fa-heart like-btn"></i>
+                    <div class="title-artist">
+                        <h2>Amazing</h2>
+                        <p>Listen what you want</p>
+                    </div>
+                    <i class="fas fa-ellipsis-h options-btn"></i>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress"></div>
+                    <div class="progress-thumb"></div>
+                </div>
+                <div class="time-stamps">
+                    <span>0:00</span>
+                    <span>3:37</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <i class="fas fa-random control-btn"></i>
+            <i class="fas fa-step-backward control-btn"></i>
+            <div class="play-pause-btn">
+                <i class="fas fa-play"></i>
+            </div>
+            <i class="fas fa-step-forward control-btn"></i>
+            <svg class="control-btn" id="playlist-btn-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" style="cursor:pointer;" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="6" width="16" height="2" rx="1" fill="#3d3522"/><rect x="4" y="10" width="16" height="2" rx="1" fill="#3d3522"/><rect x="4" y="14" width="10" height="2" rx="1" fill="#3d3522"/><circle cx="19" cy="15" r="2" fill="#3d3522"/></svg>
+        </div>
+    </div>
+
+    <div id="playlistModal">
+      <div class="modal-content">
+        <h3 id="playlistTitle">Search Results</h3>
+        <button id="closePlaylist" class="close-btn">&times;</button>
+        <ul id="playlistSongs"></ul>
+      </div>
+    </div>
+    
+    <script>
+        // --- BADLAAV #3: SCRIPT MEIN BADE BADLAAV ---
+
+        // --- BADLAAV #3A: Local Songs Array Wapas Add Karein ---
+        // IMPORTANT: Apne local image aur song files ke path yahan sahi se daalein
+        const localSongs = [
+            {
+                name: "Arjan Vailly Ne",
+                artist: "Bhupinder Babbal",
+                img: "images/animal.jpg", // Example
+                src: "songs/Arjan Vailly Ne.mp3", // Example
+                type: 'local' // Type zaroori hai
+            },
+            {
+                name: "Jale 2",
+                artist: "Sapna Choudhary",
+                img: "images/jale.jpg", // Example
+                src: "songs/Jale 2.mp3", // Example
+                type: 'local'
+            },
+            {
+                name: "Pehle Bhi Main",
+                artist: "Vishal Mishra",
+                img: "images/animal.jpg", // Example
+                src: "songs/Pehle Bhi Main.mp3", // Example
+                type: 'local'
+            },
+        ];
+
+        // --- Backend Server ka Address ---
+        const BACKEND_URL = 'http://localhost:3000';
+
+        // --- Saare Elements Select Karna ---
+        // (Isme naye buttons add kiye gaye hain)
+        const albumCover = document.querySelector('.album-cover');
+        const songTitle = document.querySelector('.title-artist h2');
+        const songArtist = document.querySelector('.title-artist p');
+        const playPauseBtn = document.querySelector('.play-pause-btn');
+        const playPauseIcon = playPauseBtn.querySelector('i');
+        const forwardBtn = document.querySelector('.fa-step-forward');
+        const backwardBtn = document.querySelector('.fa-step-backward');
+        const progressBarContainer = document.querySelector('.progress-bar-container');
+        const progressBar = document.querySelector('.progress');
+        const progressThumb = document.querySelector('.progress-thumb');
+        const currentTimeEl = document.querySelector('.time-stamps span:first-child');
+        const durationEl = document.querySelector('.time-stamps span:last-child');
+        const playlistIcon = document.getElementById('playlist-btn-icon');
+        const playlistModal = document.getElementById('playlistModal');
+        const playlistTitle = document.getElementById('playlistTitle');
+        const playlistSongsUl = document.getElementById('playlistSongs');
+        const closePlaylistBtn = document.getElementById('closePlaylist');
+        const searchContainer = document.getElementById('searchContainer');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchInput = document.getElementById('searchInput');
+        const localModeBtn = document.getElementById('localModeBtn'); // Naya button
+        const youtubeModeBtn = document.getElementById('youtubeModeBtn'); // Naya button
+
+
+        // --- Player ki State ---
+        let youtubePlaylist = []; // Youtube ke results ke liye
+        let currentPlaylist = []; // Abhi kaun si playlist active hai
+        let currentSongIndex = -1;
+        let isPlaying = false;
+        let audio = new Audio();
+        attachAudioEvents();
+
+        // ==========================================================
+        // BADLAAV #3B: Mode Switch Karne ka Naya Logic
+        // ==========================================================
+        function setMode(mode) {
+            if (mode === 'local') {
+                currentPlaylist = localSongs;
+                localModeBtn.classList.add('active-mode');
+                youtubeModeBtn.classList.remove('active-mode');
+                searchContainer.style.display = 'none'; // Local mode me search bar chhupa dein
+                displayPlaylistModal('My Library', localSongs);
+            } else { // mode === 'youtube'
+                currentPlaylist = youtubePlaylist;
+                youtubeModeBtn.classList.add('active-mode');
+                localModeBtn.classList.remove('active-mode');
+                searchContainer.style.display = 'block'; // YouTube mode me search bar dikhayein
+                // YouTube playlist search karne par dikhegi
+            }
+        }
+
+        localModeBtn.addEventListener('click', () => setMode('local'));
+        youtubeModeBtn.addEventListener('click', () => setMode('youtube'));
+        
+        // --- UI Animation Logic ---
+        searchBtn.addEventListener('click', (e) => { e.stopPropagation(); searchContainer.classList.toggle('active'); if (searchContainer.classList.contains('active')) { searchInput.focus(); } });
+        document.addEventListener('click', (e) => { if (!searchContainer.contains(e.target) && searchContainer.classList.contains('active')) { searchContainer.classList.remove('active'); } });
+        
+        // --- Youtube Logic ---
+        searchInput.addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); searchMusic(); } });
+
+        function searchMusic() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+
+            songTitle.textContent = "Searching...";
+            songArtist.textContent = `for "${query}"`;
+            
+            fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(results => {
+                    if (results && results.length > 0) {
+                        youtubePlaylist = results.map(song => ({ ...song, type: 'youtube' })); // Har result me type add karein
+                        currentPlaylist = youtubePlaylist;
+                        displayPlaylistModal('Search Results', youtubePlaylist);
+                    } else {
+                        songTitle.textContent = "No Results Found";
+                        songArtist.textContent = "Try another search.";
+                    }
+                })
+                .catch(err => {
+                    console.error('Search Error:', err);
+                    songTitle.textContent = "Error";
+                    songArtist.textContent = "Could not connect to server.";
+                });
+        }
+
+        function displayPlaylistModal(title, songsToDisplay) {
+            playlistTitle.textContent = title;
+            playlistSongsUl.innerHTML = songsToDisplay.map((song, idx) => `
+                <li data-idx="${idx}">
+                    <div class="thumb" style="background-image:url('${song.thumbnail || song.img}')"></div>
+                    <div class="song-info">
+                        <span class="song-name">${song.title || song.name}</span>
+                        <span class="song-artist">${song.channel || song.artist}</span>
+                    </div>
+                </li>
+            `).join('');
+            playlistModal.style.display = 'flex';
+        }
+        
+        // ==========================================================
+        // BADLAAV #3C: "Smart" Play Song Function
+        // ==========================================================
+        function playSong(index) {
+            if (index < 0 || index >= currentPlaylist.length) return;
+
+            currentSongIndex = index;
+            const song = currentPlaylist[currentSongIndex];
+
+            // UI Update karna (sabke liye common)
+            albumCover.style.backgroundImage = `url('${song.thumbnail || song.img}')`;
+            songArtist.textContent = song.channel || song.artist;
+            updateActivePlaylistItem();
+
+            if (song.type === 'local') {
+                // LOCAL GAANA PLAY KARNE KA LOGIC
+                songTitle.textContent = song.name;
+                audio.src = song.src;
+                playAudio();
+
+            } else { // song.type === 'youtube'
+                // YOUTUBE GAANA PLAY KARNE KA LOGIC
+                songTitle.textContent = "Loading Audio...";
+                playPauseIcon.className = 'fas fa-spinner fa-spin';
+
+                fetch(`${BACKEND_URL}/api/audio?videoId=${song.videoId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.audioUrl) {
+                            audio.src = data.audioUrl;
+                            songTitle.textContent = song.title;
+                            playAudio();
+                        } else {
+                            songTitle.textContent = "Error";
+                            songArtist.textContent = "Could not load audio.";
+                            playPauseIcon.className = 'fas fa-exclamation-circle';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Audio Fetch Error:', err);
+                        songTitle.textContent = "Error";
+                        songArtist.textContent = "Failed to get audio stream.";
+                        playPauseIcon.className = 'fas fa-exclamation-circle';
+                    });
+            }
+        }
+
+        playlistSongsUl.addEventListener('click', function(e) {
+            const li = e.target.closest('li[data-idx]');
+            if (!li) return;
+            const idx = Number(li.getAttribute('data-idx'));
+            playSong(idx);
+            playlistModal.style.display = 'none';
+        });
+        
+        // --- Baaki ka Player Logic (isme thode badlaav hain) ---
+        function playAudio() { isPlaying = true; playPauseIcon.className = 'fas fa-pause'; albumCover.classList.add('spin'); audio.play().catch(e => console.error("Playback failed:", e)); }
+        function pauseAudio() { isPlaying = false; playPauseIcon.className = 'fas fa-play'; albumCover.classList.remove('spin'); audio.pause(); }
+        playPauseBtn.onclick = () => { if (!audio.src) return; isPlaying ? pauseAudio() : playAudio(); };
+        forwardBtn.onclick = () => playSong((currentSongIndex + 1) % currentPlaylist.length);
+        backwardBtn.onclick = () => playSong((currentSongIndex - 1 + currentPlaylist.length) % currentPlaylist.length);
+        playlistIcon.addEventListener('click', () => { if (currentPlaylist.length > 0) { displayPlaylistModal(currentPlaylist === localSongs ? 'My Library' : 'Search Results', currentPlaylist); }});
+        closePlaylistBtn.onclick = () => playlistModal.style.display = 'none';
+
+        function updateActivePlaylistItem() {
+            document.querySelectorAll('#playlistSongs li').forEach((li) => {
+                const idx = Number(li.getAttribute('data-idx'));
+                if (idx === currentSongIndex) {
+                    li.classList.add('active');
+                } else {
+                    li.classList.remove('active');
+                }
+            });
+        }
+        
+        // --- Helper functions (inme koi badlaav nahi) ---
+        function attachAudioEvents() {
+            audio.ontimeupdate = () => { if (!audio.duration) return; const percent = (audio.currentTime / audio.duration) * 100; progressBar.style.width = percent + '%'; progressThumb.style.left = percent + '%'; currentTimeEl.textContent = formatTime(audio.currentTime); };
+            audio.onloadedmetadata = () => { durationEl.textContent = formatTime(audio.duration); };
+            audio.onended = () => { forwardBtn.onclick(); };
+        }
+        function formatTime(sec) { if (isNaN(sec)) return "0:00"; const m = Math.floor(sec / 60); const s = Math.floor(sec % 60); return `${m}:${s.toString().padStart(2, '0')}`; }
+        progressBarContainer.onclick = function(e) { if (!audio.duration) return; const rect = this.getBoundingClientRect(); const x = e.clientX - rect.left; const percent = x / rect.width; audio.currentTime = percent * audio.duration; };
+
+        // Default mode set karna
+        setMode('youtube');
+
+    </script>
+</body>
+</html>
