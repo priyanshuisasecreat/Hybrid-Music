@@ -1,10 +1,10 @@
-// backend/server.js (FINAL VERSION using play-dl)
-console.log("--- FINAL CODE v4 (play-dl) CHAL RAHA HAI ---");
+// backend/server.js (FINAL VERSION - PIPED API)
+console.log("--- FINAL CODE v5 (Piped API) CHAL RAHA HAI ---");
 
 const express = require('express');
 const cors = require('cors');
 const { google } = require('googleapis');
-const play = require('play-dl'); // Nayi library: play-dl
+// Humne play-dl/ytdl-core yahan se hata diya hai
 
 const app = express();
 const PORT = 3000;
@@ -13,22 +13,18 @@ const PORT = 3000;
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const youtube = google.youtube({ version: 'v3', auth: YOUTUBE_API_KEY });
 
-// play-dl ko cookies ke saath set up karna (ek baar)
-play.setToken({
-  youtube : {
-    cookie: process.env.YOUTUBE_COOKIES || '',
-  }
-});
+// Piped ka ek public server. Aap isse badal bhi sakte hain.
+const PIPED_API_URL = "https://pipedapi.kavin.rocks";
 
 app.use(cors());
 
-// Search endpoint (isme koi badlaav nahi)
+// Search endpoint (yeh aaram se kaam karega, isme koi badlaav nahi)
 app.get('/api/search', async (req, res) => {
   const query = req.query.q;
   if (!query) return res.status(400).json({ error: 'Query is required' });
 
   try {
-    const response = await youtube.search.list({  // ✅ correct
+    const response = await Youtube.list({
       part: 'snippet', q: query, type: 'video', maxResults: 10, videoCategoryId: '10'
     });
     const results = response.data.items.map(item => ({
@@ -41,29 +37,33 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// --- AUDIO ENDPOINT (Puri Tarah Naya Code) ---
+// --- AUDIO ENDPOINT (Piped API ke saath naya code) ---
 app.get('/api/audio', async (req, res) => {
   const videoId = req.query.videoId;
   if (!videoId) return res.status(400).json({ error: 'Video ID is required' });
 
   try {
-    // play-dl se stream information nikalna
-    const stream = await play.stream(`https://www.youtube.com/watch?v=${videoId}`, {
-        quality: 2 // 0 = lowest, 1 = low, 2 = high (audio ke liye)
-    });
+    // Piped API ko call karke stream details laana
+    const pipedUrl = `${PIPED_API_URL}/streams/${videoId}`;
+    const response = await fetch(pipedUrl);
+    const data = await response.json();
 
-    if (!stream || !stream.url) {
-        return res.status(404).json({ error: 'No audio stream found.' });
+    // Sabse achhi quality waali audio stream dhoondhna
+    const bestAudioStream = data.audioStreams
+      .sort((a, b) => b.bitrate - a.bitrate)[0];
+
+    if (!bestAudioStream || !bestAudioStream.url) {
+      return res.status(404).json({ error: 'No audio stream found via Piped.' });
     }
 
     // Direct audio stream ka URL bhejna
-    res.json({ audioUrl: stream.url });
+    res.json({ audioUrl: bestAudioStream.url });
 
   } catch (error) {
-    console.log("!!!!!!!!!!!!!! AUDIO FETCH ME ERROR HUA (play-dl) !!!!!!!!!!!!!!");
+    console.log("!!!!!!!!!!!!!! AUDIO FETCH ME ERROR HUA (Piped) !!!!!!!!!!!!!!");
     console.error(error);
     console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-    res.status(500).json({ error: 'Failed to get audio stream' });
+    res.status(500).json({ error: 'Failed to get audio stream via Piped' });
   }
 });
 

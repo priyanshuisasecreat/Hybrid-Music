@@ -12,7 +12,6 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "googleapis": "^154.1.0",
-    "play-dl": "^1.9.7"
+    "googleapis": "^154.1.0"
   }
 }
