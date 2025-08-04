@@ -1,11 +1,10 @@
-// backend/server.js (THE ABSOLUTE FINAL VERSION)
+// backend/server.js (ABSOLUTE FINAL - SYNTAX CORRECTED)
 console.log("--- NAYA CODE v3 CHAL RAHA HAI ---");
 
 const express = require('express');
 const cors = require('cors');
 const { google } = require('googleapis');
-// --- YAHAN BADLAAV KIYA GAYA HAI ---
-const ytdl = require('ytdl-core-new');// Hum nayi library ka istemaal kar rahe hain
+const ytdl = require('ytdl-core-new');
 
 const app = express();
 const PORT = 3000;
@@ -23,7 +22,6 @@ app.get('/api/search', async (req, res) => {
 
   try {
     const response = await youtube.search.list({  // ✅ correct
-
       part: 'snippet',
       q: query,
       type: 'video',
@@ -52,11 +50,10 @@ app.get('/api/audio', async (req, res) => {
   const videoId = req.query.videoId;
   if (!videoId) return res.status(400).json({ error: 'Video ID is required' });
 
-try {
-    // Hum request ke saath cookies bhej rahe hain
+  try {
     const requestOptions = {
       headers: {
-        cookie: process.env.YOUTUBE_COOKIES || '', // Render se cookies uthana
+        cookie: process.env.YOUTUBE_COOKIES || '',
       }
     };
 
@@ -69,16 +66,13 @@ try {
     
     res.json({ audioUrl: audioFormat.url });
 
-} // ...
-} catch (error) {
-    // SAARA ERROR HANDLING IS BLOCK KE ANDAR HONA CHAHIYE
+  } catch (error) {
     console.log("!!!!!!!!!!!!!! AUDIO FETCH ME ERROR HUA !!!!!!!!!!!!!!");
     console.error(error);
     console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     res.status(500).json({ error: 'Failed to get audio stream' });
-}
-// ...
-   
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Audio Helper Backend is running at http://localhost:${PORT}`);
