@@ -201,8 +201,154 @@
         <ul id="playlistSongs"></ul>
       </div>
     </div>
+
+
+<script>
+    // --- FINAL SCRIPT (SoundCloud Version) ---
+    // Date: 5 August, 2025
+
+    // --- Backend Server ka Address ---
+    const BACKEND_URL = 'https://hybrid-music.onrender.com'; // Apna Render URL yahan daalein
+
+    // --- Saare Elements Select Karna ---
+    const albumCover = document.querySelector('.album-cover');
+    const songTitle = document.querySelector('.title-artist h2');
+    const songArtist = document.querySelector('.title-artist p');
+    const playPauseBtn = document.querySelector('.play-pause-btn');
+    const playPauseIcon = playPauseBtn.querySelector('i');
+    const forwardBtn = document.querySelector('.fa-step-forward');
+    const backwardBtn = document.querySelector('.fa-step-backward');
+    const progressBarContainer = document.querySelector('.progress-bar-container');
+    const progressBar = document.querySelector('.progress');
+    const progressThumb = document.querySelector('.progress-thumb');
+    const currentTimeEl = document.querySelector('.time-stamps span:first-child');
+    const durationEl = document.querySelector('.time-stamps span:last-child');
+    const playlistIcon = document.getElementById('playlist-btn-icon');
+    const playlistModal = document.getElementById('playlistModal');
+    const playlistTitle = document.getElementById('playlistTitle');
+    const playlistSongsUl = document.getElementById('playlistSongs');
+    const closePlaylistBtn = document.getElementById('closePlaylist');
+    const searchContainer = document.getElementById('searchContainer');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchInput = document.getElementById('searchInput');
+
+    // --- Player ki State ---
+    let playlist = [];
+    let currentSongIndex = -1;
+    let isPlaying = false;
+    let audio = new Audio();
+    attachAudioEvents();
+
+    // --- UI Animation Logic (Isme koi badlaav nahi) ---
+    searchBtn.addEventListener('click', (e) => { e.stopPropagation(); searchContainer.classList.toggle('active'); if (searchContainer.classList.contains('active')) { searchInput.focus(); } });
+    document.addEventListener('click', (e) => { if (!searchContainer.contains(e.target) && searchContainer.classList.contains('active')) { searchContainer.classList.remove('active'); } });
     
-    <script>
+    // --- SoundCloud Search Logic ---
+    searchInput.addEventListener('keypress', function(event) { if (event.key === 'Enter') { event.preventDefault(); searchMusic(); } });
+
+    function searchMusic() {
+        const query = searchInput.value.trim();
+        if (!query) return;
+
+        songTitle.textContent = "Searching on SoundCloud...";
+        songArtist.textContent = `for "${query}"`;
+        
+        // Naye backend endpoint ko call karna
+        fetch(`${BACKEND_URL}/api/soundcloud-search?q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(results => {
+                if (results && results.length > 0) {
+                    playlist = results;
+                    displayPlaylistModal('SoundCloud Results', playlist);
+                } else {
+                    songTitle.textContent = "No Results Found";
+                    songArtist.textContent = "Try another search.";
+                }
+            })
+            .catch(err => {
+                console.error('Search Error:', err);
+                songTitle.textContent = "Error";
+                songArtist.textContent = "Could not connect to server.";
+            });
+    }
+
+    function displayPlaylistModal(title, songsToDisplay) {
+        playlistTitle.textContent = title;
+        playlistSongsUl.innerHTML = songsToDisplay.map((song, idx) => `
+            <li data-idx="${idx}">
+                <div class="thumb" style="background-image:url('${song.thumbnail}')"></div>
+                <div class="song-info">
+                    <span class="song-name">${song.title}</span>
+                    <span class="song-artist">${song.artist}</span>
+                </div>
+            </li>
+        `).join('');
+        playlistModal.style.display = 'flex';
+    }
+    
+    // --- SoundCloud Gaana Play Karne ka Logic ---
+    function playSong(index) {
+        if (index < 0 || index >= playlist.length) return;
+
+        currentSongIndex = index;
+        const song = playlist[currentSongIndex];
+
+        songTitle.textContent = "Loading Audio...";
+        songArtist.textContent = song.artist;
+        albumCover.style.backgroundImage = `url('${song.thumbnail}')`;
+        playPauseIcon.className = 'fas fa-spinner fa-spin';
+        updateActivePlaylistItem();
+        
+        // Naye backend endpoint ko call karna
+        fetch(`${BACKEND_URL}/api/soundcloud-audio?trackId=${song.id}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.audioUrl) {
+                    audio.src = data.audioUrl;
+                    songTitle.textContent = song.title;
+                    playAudio();
+                } else {
+                    songTitle.textContent = "Error";
+                    songArtist.textContent = "Could not load audio.";
+                    playPauseIcon.className = 'fas fa-exclamation-circle';
+                }
+            })
+            .catch(err => {
+                console.error('Audio Fetch Error:', err);
+                songTitle.textContent = "Error";
+                songArtist.textContent = "Failed to get audio stream.";
+                playPauseIcon.className = 'fas fa-exclamation-circle';
+            });
+    }
+
+    playlistSongsUl.addEventListener('click', function(e) {
+        const li = e.target.closest('li[data-idx]');
+        if (!li) return;
+        const idx = Number(li.getAttribute('data-idx'));
+        playSong(idx);
+        playlistModal.style.display = 'none';
+    });
+    
+    // --- Baaki ka Player Logic (lagbhag same hai) ---
+    function playAudio() { isPlaying = true; playPauseIcon.className = 'fas fa-pause'; albumCover.classList.add('spin'); audio.play().catch(e => console.error("Playback failed:", e)); }
+    function pauseAudio() { isPlaying = false; playPauseIcon.className = 'fas fa-play'; albumCover.classList.remove('spin'); audio.pause(); }
+    playPauseBtn.onclick = () => { if (!audio.src) return; isPlaying ? pauseAudio() : playAudio(); };
+    forwardBtn.onclick = () => playSong((currentSongIndex + 1) % playlist.length);
+    backwardBtn.onclick = () => playSong((currentSongIndex - 1 + playlist.length) % playlist.length);
+    playlistIcon.addEventListener('click', () => { if (playlist.length > 0) { displayPlaylistModal('Current Playlist', playlist); }});
+    closePlaylistBtn.onclick = () => playlistModal.style.display = 'none';
+
+    function updateActivePlaylistItem() { document.querySelectorAll('#playlistSongs li').forEach((li, idx) => { if (idx === currentSongIndex) { li.classList.add('active'); } else { li.classList.remove('active'); } }); }
+    
+    // --- Helper functions (inme koi badlaav nahi) ---
+    function attachAudioEvents() { audio.ontimeupdate = () => { if (!audio.duration) return; const percent = (audio.currentTime / audio.duration) * 100; progressBar.style.width = percent + '%'; progressThumb.style.left = percent + '%'; currentTimeEl.textContent = formatTime(audio.currentTime); }; audio.onloadedmetadata = () => { durationEl.textContent = formatTime(audio.duration); }; audio.onended = () => { forwardBtn.onclick(); }; }
+    function formatTime(sec) { if (isNaN(sec)) return "0:00"; const m = Math.floor(sec / 60); const s = Math.floor(sec % 60); return `${m}:${s.toString().padStart(2, '0')}`; }
+    progressBarContainer.onclick = function(e) { if (!audio.duration) return; const rect = this.getBoundingClientRect(); const x = e.clientX - rect.left; const percent = x / rect.width; audio.currentTime = percent * audio.duration; };
+
+</script>
+
+    
+    <!-- <script>
         // --- BADLAAV #3: SCRIPT MEIN BADE BADLAAV ---
 
         // --- BADLAAV #3A: Local Songs Array Wapas Add Karein ---
@@ -424,6 +570,6 @@
         // Default mode set karna
         setMode('youtube');
 
-    </script>
+    </script> -->
 </body>
 </html>
