@@ -287,39 +287,40 @@
     }
     
     // --- SoundCloud Gaana Play Karne ka Logic ---
-    function playSong(index) {
-        if (index < 0 || index >= playlist.length) return;
+    // index.html ke script mein is function ko badlein
+function playSong(index) {
+    if (index < 0 || index >= playlist.length) return;
 
-        currentSongIndex = index;
-        const song = playlist[currentSongIndex];
+    currentSongIndex = index;
+    const song = playlist[currentSongIndex];
 
-        songTitle.textContent = "Loading Audio...";
-        songArtist.textContent = song.artist;
-        albumCover.style.backgroundImage = `url('${song.thumbnail}')`;
-        playPauseIcon.className = 'fas fa-spinner fa-spin';
-        updateActivePlaylistItem();
-        
-        // Naye backend endpoint ko call karna
-        fetch(`${BACKEND_URL}/api/soundcloud-audio?trackId=${song.id}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.audioUrl) {
-                    audio.src = data.audioUrl;
-                    songTitle.textContent = song.title;
-                    playAudio();
-                } else {
-                    songTitle.textContent = "Error";
-                    songArtist.textContent = "Could not load audio.";
-                    playPauseIcon.className = 'fas fa-exclamation-circle';
-                }
-            })
-            .catch(err => {
-                console.error('Audio Fetch Error:', err);
+    songTitle.textContent = "Loading Audio...";
+    songArtist.textContent = song.artist;
+    albumCover.style.backgroundImage = `url('${song.thumbnail}')`;
+    playPauseIcon.className = 'fas fa-spinner fa-spin';
+    updateActivePlaylistItem();
+    
+    // Naye backend endpoint ko call karna (ab trackUrl bhej rahe hain)
+    fetch(`${BACKEND_URL}/api/soundcloud-audio?trackUrl=${encodeURIComponent(song.url)}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.audioUrl) {
+                audio.src = data.audioUrl;
+                songTitle.textContent = song.title;
+                playAudio();
+            } else {
                 songTitle.textContent = "Error";
-                songArtist.textContent = "Failed to get audio stream.";
+                songArtist.textContent = "Could not load audio.";
                 playPauseIcon.className = 'fas fa-exclamation-circle';
-            });
-    }
+            }
+        })
+        .catch(err => {
+            console.error('Audio Fetch Error:', err);
+            songTitle.textContent = "Error";
+            songArtist.textContent = "Failed to get audio stream.";
+            playPauseIcon.className = 'fas fa-exclamation-circle';
+        });
+}
 
     playlistSongsUl.addEventListener('click', function(e) {
         const li = e.target.closest('li[data-idx]');
