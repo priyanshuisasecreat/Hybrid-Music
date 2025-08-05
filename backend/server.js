@@ -1,9 +1,8 @@
-// backend/server.js (FINAL VERSION - SoundCloud)
-console.log("--- FINAL CODE v8 (SoundCloud API) CHAL RAHA HAI ---");
+// backend/server.js (FINAL DEBUGGING VERSION - SoundCloud)
+console.log("--- FINAL CODE v9 (SoundCloud Debug) CHAL RAHA HAI ---");
 
 const express = require('express');
 const cors = require('cors');
-// googleapis hata diya gaya hai
 
 const app = express();
 const PORT = 3000;
@@ -22,15 +21,21 @@ app.get('/api/soundcloud-search', async (req, res) => {
 
   try {
     const response = await fetch(searchUrl);
-    const data = await response.json();
+    
+    // --- NAYI DEBUGGING LINE YAHAN ADD KI GAYI HAI ---
+    // Hum response ko JSON mein badalne se pehle uska raw text dekhenge
+    const responseText = await response.text();
+    console.log("SoundCloud ka RAW Jawab:", responseText);
+    
+    // Ab text ko JSON mein badalne ki koshish karenge
+    const data = JSON.parse(responseText);
 
-    // SoundCloud se aaye data ko saaf karna
     const results = data.collection.map(track => ({
       id: track.id,
       title: track.title,
       artist: track.user.username,
-      thumbnail: track.artwork_url || track.user.avatar_url, // Use user avatar if artwork is missing
-      duration: track.duration // in milliseconds
+      thumbnail: track.artwork_url || track.user.avatar_url,
+      duration: track.duration
     }));
 
     res.json(results);
@@ -51,7 +56,6 @@ app.get('/api/soundcloud-audio', async (req, res) => {
     const response = await fetch(trackUrl);
     const trackData = await response.json();
 
-    // Stream URL dhoondhna
     const streamUrlObject = trackData.media.transcodings.find(
       t => t.format.protocol === 'progressive' && t.format.mime_type === 'audio/mpeg'
     );
@@ -60,7 +64,6 @@ app.get('/api/soundcloud-audio', async (req, res) => {
       return res.status(404).json({ error: 'Progressive stream URL not found for this track.' });
     }
 
-    // SoundCloud ke stream URL ko dobara fetch karke asli audio URL nikalna
     const streamInfoResponse = await fetch(`${streamUrlObject.url}?client_id=${SOUNDCLOUD_CLIENT_ID}`);
     const streamInfo = await streamInfoResponse.json();
 
