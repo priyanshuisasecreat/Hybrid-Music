@@ -42,12 +42,12 @@ app.get('/api/audio', async (req, res) => {
   if (!videoId) return res.status(400).json({ error: 'Video ID is required' });
 
   // RapidAPI ke liye URL aur options taiyaar karna
-  const apiUrl = `https://youtube-mp3-downloader-10.p.rapidapi.com/fetch_link?video_id=${videoId}`;
+  const apiUrl = `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`;
   const options = {
     method: 'GET',
     headers: {
       'X-RapidAPI-Key': RAPIDAPI_KEY,
-      'X-RapidAPI-Host': 'youtube-mp3-downloader-10.p.rapidapi.com'
+      'X-RapidAPI-Host': 'youtube-mp36.p.rapidapi.com'
     }
   };
 
